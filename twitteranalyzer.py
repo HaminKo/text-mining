@@ -3,7 +3,8 @@ import re
 import nltk
 from nltk.tokenize import TweetTokenizer
 import string
-from textblob import TextBlob 
+from textblob import TextBlob
+import json
 
 class twitterAnalyzer:
     """ 
@@ -199,8 +200,6 @@ class twitterAnalyzer:
         """
         def return_polarity(tweet):
             return tweet['polarity']
-        def return_subjectivity(tweet):
-            return tweet['subjectivity']
 
         print("The top {} most {} tweets:".format(count, sentiment))
 
@@ -269,7 +268,7 @@ def main():
     trump = twitterAnalyzer(tweets=tweets, tweets_data=tweets_data)
     print(len(trump.tweets))
 
-    # print(trump.tweets_data[0].full_text)
+    print(json.dumps(trump.tweets_data[0]._json, indent=4))
 
     # tokenize = trump.tokenize()
     # tokenize_lower = trump.to_lower(tokenize)
@@ -294,8 +293,8 @@ def main():
     # trump.print_most_common(hist_clean_tweets_no_stop, n=10)
 
     # Do sentiment analysis
-    sentiment_tweets = trump.do_sentiment_analysis()
-    trump.print_sentiment_summary(sentiment_tweets)
+    # sentiment_tweets = trump.do_sentiment_analysis()
+    # trump.print_sentiment_summary(sentiment_tweets)
 
 
 if __name__ == '__main__':
