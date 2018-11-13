@@ -10,15 +10,27 @@ class twitterAnalyzer:
     Generic class with text analysis functions specifically designed for tweets
     """
     
-    def __init__(self, tweets, tweets_data=None):
+    def __init__(self, tweets, tweets_data=None, sentiment_data=None, positive_tweets=None, negative_tweets=None, neutral_tweets=None):
         """
         Class Constructur/Initializaiton Method
         """
         if tweets_data is None:
             tweets_data = []
+        if sentiment_data is None:
+            sentiment_data = []
+        if positive_tweets is None:
+            positive_tweets = []
+        if negative_tweets is None:
+            negative_tweets = []
+        if neutral_tweets is None:
+            neutral_tweets = []
 
         self.tweets = tweets
         self.tweets_data = tweets_data
+        self.sentiment_data = sentiment_data
+        self.positive_tweets = positive_tweets
+        self.negative_tweets = negative_tweets
+        self.neutral_tweets = neutral_tweets
     
     def tokenize(self):
         """
@@ -117,6 +129,12 @@ class twitterAnalyzer:
         """
         Does sentiment analysis on all tweets
 
+        Sets the following attributes:
+        self.sentiment_data
+        self.positive_tweets
+        self.negative_tweets
+        self.neutral_tweets
+
         Return a list of objects with the following form:
         {
             'text': String that is the tweet
@@ -137,30 +155,105 @@ class twitterAnalyzer:
             parsed_tweet['subjectivity'] = sentiment_data[2]
 
             tweets_sentiment.append(parsed_tweet)
-        
+
+        self.sentiment_data = tweets_sentiment
+        self.positive_tweets = [tweet for tweet in self.sentiment_data if tweet['sentiment'] == 'Positive']
+        self.negative_tweets = [tweet for tweet in self.sentiment_data if tweet['sentiment'] == 'Negative']
+        self.neutral_tweets = [tweet for tweet in self.sentiment_data if tweet['sentiment'] == 'Neutral']
+
         return tweets_sentiment
     
+    def print_recent_tweets(self, sentiment, count=5):
+        """
+        Print specifieid number of most recent tweets that are positive.
+
+        Sentiment is a string value that must be the following:
+        'positive'
+        'negative'
+        'neutral'
+
+        Count is an intenger that represents the number of tweets to print; the default is 5.
+        """
+        print("\nMost recent {} tweets:".format(sentiment))
+
+        def print_tweet(tweets, count):
+            for tweet in tweets[:count]:
+                print(tweet['text'], "\n")
+
+        if sentiment == 'positive':
+            print_tweet(self.positive_tweets, count)
+        elif sentiment == 'negative':
+            print_tweet(self.negative_tweets, count)
+        elif sentiment == 'neutral':
+            print_tweet(self.neutral_tweets, count)
+        else:
+            raise ValueError("Sentiment must be a string that is 'positive', 'negative', or 'neutral'.")
+    
+    def print_extreme_tweets(self, sentiment, count=1, num_score=False):
+        """
+        Prints the tweet with the largest positive or negative polarity value.
+
+        Count is an integer that represetnts the number of tweets to print after the data is sourted; the deafult is 1.
+
+        num_score determines whether or not to print the polarity and subjectivity score of the tweet as well.
+        """
+        def return_polarity(tweet):
+            return tweet['polarity']
+        def return_subjectivity(tweet):
+            return tweet['subjectivity']
+
+        print("The top {} most {} tweets:".format(count, sentiment))
+
+        if sentiment == 'positive':
+            sorted_tweet = sorted(self.positive_tweets, key=return_polarity, reverse=True)
+        elif sentiment == 'negative':
+            sorted_tweet = sorted(self.negative_tweets, key=return_polarity)
+        else:
+            raise ValueError("Sentiment must be a string that is either 'positive' or 'negative'.")
+        
+        for tweet in sorted_tweet[:count]:
+            print(tweet['text'])
+            if num_score:
+                print("Polarity: {} | Subjectivity: {}".format(tweet['polarity'], tweet['subjectivity']), "\n")
+    
+    def print_objective_tweets(self, count=5, objective=True):
+        """
+        Print tweets with the highest or lowest level of objectivity.
+
+        Count is an integer that determines how many tweets to print.
+
+        Objective is a boolean value that determines whether to print highly subjective or highly objective tweets.
+        """
+        def return_subjectivity(tweet):
+            return tweet['subjectivity']
+        
+        print("Most objective tweets:")
+        if objective:
+            sorted_objective = sorted(self.sentiment_data, key=return_subjectivity)
+        elif not objective:
+            sorted_objective = sorted(self.sentiment_data, key=return_subjectivity, reverse=True)
+        else:
+            raise ValueError('Objective must be a boolean value')
+
+        for tweet in sorted_objective[:count]:
+            print(tweet['text'])
+            print("Subjectivity: {}".format(tweet['subjectivity']), "\n")
+
     def print_sentiment_summary(self, sentiment_data):
+        """
+        Print various summary statistics and example tweets based on the sentiment analysis
+        """
 
-        positive_tweets = [tweet for tweet in sentiment_data if tweet['sentiment'] == 'Positive']
-        negative_tweets = [tweet for tweet in sentiment_data if tweet['sentiment'] == 'Negative']
-        neutral_tweets = [tweet for tweet in sentiment_data if tweet['sentiment'] == 'Neutral']
+        self.print_recent_tweets('positive')
+        self.print_recent_tweets('negative')
+        self.print_recent_tweets('neutral')
 
-        print("Positive tweets percentage: {} %".format(100*len(positive_tweets)/len(sentiment_data)))
-        print("Negative tweets percentage: {} %".format(100*len(negative_tweets)/len(sentiment_data)))
-        print("Neutral tweets percentage: {} %".format(100*len(neutral_tweets)/len(sentiment_data)))
+        self.print_extreme_tweets('positive', num_score=True)
+        self.print_extreme_tweets('negative', num_score=True)
 
-        print("\nMost recent positive tweets:")
-        for tweet in positive_tweets[:5]:
-            print(tweet['text'])
-        
-        print("\nMost recent negative tweets:")
-        for tweet in negative_tweets[:5]:
-            print(tweet['text'])
-        
-        print("\nMost recent neutral tweets:")
-        for tweet in neutral_tweets[:5]:
-            print(tweet['text'])
+        self.print_objective_tweets(count=5)
+        self.print_objective_tweets(count=5, objective=False)
+
 
     
 
@@ -178,27 +271,27 @@ def main():
 
     # print(trump.tweets_data[0].full_text)
 
-    tokenize = trump.tokenize()
-    tokenize_lower = trump.to_lower(tokenize)
-    hist_tokenize = trump.word_freq(tokenize_lower)
-    trump.print_most_common(hist_tokenize, n=10)
+    # tokenize = trump.tokenize()
+    # tokenize_lower = trump.to_lower(tokenize)
+    # hist_tokenize = trump.word_freq(tokenize_lower)
+    # trump.print_most_common(hist_tokenize, n=10)
 
-    # Let's compare nltk's tokenize designed for tweets to just stripping all words down bare:
-    clean_tweets = trump.clean_all_tweets()
-    clean_tweets = trump.to_lower(clean_tweets)
-    hist_clean_tweets = trump.word_freq(clean_tweets)
-    trump.print_most_common(hist_clean_tweets, n=10)
+    # # Let's compare nltk's tokenize designed for tweets to just stripping all words down bare:
+    # clean_tweets = trump.clean_all_tweets()
+    # clean_tweets = trump.to_lower(clean_tweets)
+    # hist_clean_tweets = trump.word_freq(clean_tweets)
+    # trump.print_most_common(hist_clean_tweets, n=10)
 
-    # What if we do both without stop-word?
-    print("Printing most common non-stop words with tokenize method:")
-    tokenize_lower_no_stop = trump.filter_stop_words(tokenize_lower)
-    hist_tokenize_no_stop = trump.word_freq(tokenize_lower_no_stop)
-    trump.print_most_common(hist_tokenize_no_stop, n=10)
+    # # What if we do both without stop-word?
+    # print("Printing most common non-stop words with tokenize method:")
+    # tokenize_lower_no_stop = trump.filter_stop_words(tokenize_lower)
+    # hist_tokenize_no_stop = trump.word_freq(tokenize_lower_no_stop)
+    # trump.print_most_common(hist_tokenize_no_stop, n=10)
 
-    print("Printing most common non-stop words with regex clean method:")
-    clean_tweets_no_stop = trump.filter_stop_words(clean_tweets)
-    hist_clean_tweets_no_stop = trump.word_freq(clean_tweets_no_stop)
-    trump.print_most_common(hist_clean_tweets_no_stop, n=10)
+    # print("Printing most common non-stop words with regex clean method:")
+    # clean_tweets_no_stop = trump.filter_stop_words(clean_tweets)
+    # hist_clean_tweets_no_stop = trump.word_freq(clean_tweets_no_stop)
+    # trump.print_most_common(hist_clean_tweets_no_stop, n=10)
 
     # Do sentiment analysis
     sentiment_tweets = trump.do_sentiment_analysis()
